@@ -1,0 +1,55 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Money Transfer Status API",
+        "version": "1.0.0",
+        "description": "APIs for getting money transfer status from DynamoDB table by calling lambda function"
+    },
+    "paths": {
+        "/transferStatus/{transferID}": {
+            "get": {
+                "summary": "Get Money Transfer Status",
+                "description": "Get Money Transfer Status from DynamoDB table",
+                "operationId": "getTransferStatus",
+                 "parameters": [
+                    {
+                    "name": "transferID",
+                    "in": "path",
+                    "description": "Unique ID of the transfer",
+                    "required": true,
+                    "example": "MTN0000123",
+                    "schema": {
+                    "type": "string"
+                            }
+                    }
+                            ],
+                "responses": {
+                    "200": {
+                        "description": "Get Money Transfer Status from DynamoDB table",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "transferID": {
+                                                "type": "string",
+                                                "description": "Unique ID of the Money Transfer."
+                                            },
+                                            "transferStatus": {
+                                                "type": "string",
+                                                "description": "The status of the Money transfer"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+        

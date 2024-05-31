@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 import os
+import yaml
 
 import aws_cdk as cdk
 
-from email_automation.email_automation_stack import EmailAutomationStack
+from email_automation.email_automation_stack import WorkmailOrgUserStack
+from email_automation.email_automation_workflow_stack import EmailAutomationWorkflowStack
+from email_automation.bedrock_agent_creation_stack import BedrockAgentCreation
 
 
 app = cdk.App()
-EmailAutomationStack(app, "EmailAutomationStack",
+WorkmailOrgUserStack(app, "WorkmailOrgUserStack",)
+BedrockAgentCreation(app, "BedrockAgentCreation",)
+EmailAutomationWorkflowStack(app, "EmailAutomationWorkflowStack",)
     # If you don't specify 'env', this stack will be environment-agnostic.
     # Account/Region-dependent features and context lookups will not work,
     # but a single synthesized template can be deployed anywhere.
@@ -23,6 +28,5 @@ EmailAutomationStack(app, "EmailAutomationStack",
     #env=cdk.Environment(account='123456789012', region='us-east-1'),
 
     # For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html
-    )
-
+    
 app.synth()
