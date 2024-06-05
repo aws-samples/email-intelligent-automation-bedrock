@@ -10,7 +10,7 @@ This response, tailored to address both known and unknown requests, was then sen
 
 ## Process Flow / Architecture Diagram
 
-![Architecture](./images/architecture-1.png)
+![Architecture](./Images/architecture-1.png)
 
 ## CDK project structure :
 The solution comprised of two cdk stacks.
