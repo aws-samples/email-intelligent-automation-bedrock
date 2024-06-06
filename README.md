@@ -77,8 +77,8 @@ cdk deploy EmailAutomationWorkflowStack --parameters AgentID=<Bedrock Agent ID> 
 ```
 Arguments to the stack creation :
 
-* `AgentID` (required) : 
-* `AgentAliasID` (required) : 
+* `AgentID` (required) : Output from the previous stack "BedrockAgentCreation" deployment. This is to refer Amazon Bedrock Agent ID to classification lambda.
+* `AgentAliasID` (required) : Output from the previous stack "BedrockAgentCreation" deployment. This is to refer Amazon Bedrock Agent Alias ID to classification lambda.
 * `humanWorkflowEmail` (required) : email id to receive the SNS notification if customer email content does not match with any classifcation. The email id will subscribe from SNS topic and SNS will publish unclassified email to the topic. 
 * `supportEmail` (required) : Email id created part of the workmail org and user creation. This email id will receive email from the customer and invoke the lambda function
 
