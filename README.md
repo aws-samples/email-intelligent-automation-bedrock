@@ -150,11 +150,11 @@ Ex: Hello, can you help me to solve my problem?. You will see your email has bee
 
 To avoid incurring ongoing costs, delete the resources you created as part of this solution bye executing following commands in order. 
 
-1. `cdk destroy email-reponse-automation-workflow-stack`
+1. `cdk destroy EmailAutomationWorkflowStack`
 
-2. `cdk deploy comprehend-custom-classifier-dev-notebook-stack`
+2. `cdk deploy BedrockAgentCreation`
 
-3. `cdk deploy workmail-organization-domain-user-dev-stack`
+3. `cdk deploy BedrockAgentCreation`
 
 ## Security
 
