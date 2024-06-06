@@ -13,16 +13,17 @@ This response, tailored to address both known and unknown requests, was then sen
 ![Architecture](./Images/architecture-1.png)
 
 ## CDK project structure :
-The solution comprised of two cdk stacks.
+The solution comprised of three cdk stacks.
 
-* `comprehend-custom-classifier-dev-notebook-stack` : Creates the Amazon sagemaker jupyter notebook instance pre-loaded with .ipynb notebook and creates IAM role required for executing comprehend custom classification training, deployment, and S3 data access.
-* `workmail-organization-domain-user-dev-stack` : Creates the Amazon workmail with domain, user, inbox access.
+* `WorkmailOrgUserStack` : Creates the Amazon workmail with domain, user, inbox access.
+* `BedrockAgentCreation` : Creates the Amazon Bedrock Agent, Agent Group, OpenAPI Schema, S3 Bucket, DynamoDB Table, Agent Group Lambda for gettng the transfer status from DynamoDB .
+* 'EmailAutomationWorkflowStack': Creates the classification lambda which interact with Amazon Bedrock Agent and Integration Lambda which is integrated with Amazon Workmail.
 
 ## Pre-requisites
-* AWS CLI >= 2.2.25 (Please follow [Installing or updating the latest version of the AWS CLI
+* AWS CLI >= 2.15.34 (Please follow [Installing or updating the latest version of the AWS CLI
 ](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html#cliv2-linux-upgrade) guide to install/upgrade AWS cli)
-* AWS CDK command line utility (1.120.0) (Please follow [Getting started with the AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html) guide to install/upgrade cdk.)
-* Python>=3.7
+* AWS CDK command line utility (2.135.0) (Please follow [Getting started with the AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html) guide to install/upgrade cdk.)
+* Python>=3.11.8
 
 **Note:** You can deploy these stacks in us-east-1(N.Virginia) or us-west-2(Oregon) or eu-west-1(Ireland) (Amazon workmail available only in these 3 regions)
 
@@ -30,7 +31,7 @@ The solution comprised of two cdk stacks.
 1. Clone the repository.
 
 ```
-git clone git@github.com:aws-samples/email-response-automation-comprehend.git
+git clone git@github.com:aws-samples/email-intelligent-automation-bedrock.git
 ```
 
 2. This project is set up like a standard Python project. To create the virtualenv it assumes that there is a python3 (or python for Windows) executable in your path with access to the venv package. create the virtualenv using following command.
