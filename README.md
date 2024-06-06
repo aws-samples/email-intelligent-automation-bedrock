@@ -94,17 +94,17 @@ After the stacks are succefully deployed (You can see if there is an error as th
 
 ![Workmail Org Selection](./Images/select-workmail-org.png)
 
-1.	Click on ‘Organization Settings’ from the menu and in General section you will see the web-application link for your email.
+2.	Click on ‘Organization Settings’ from the left panel menu and you will see the web-application link for your email in user login section.
 
-![Workmail Org Settings](./images/Workmail_org_settings.jpg)
+![Workmail Org Settings](./Images/link-to-workmail-webapp.png)
 
 2.	Click on that web-application URL to login and enter the username and password and Sign In.
 
-![Workmail Login](./images/Workmail_login.jpg)
+![Workmail Login](./Images/workmail-login.png)
 
 3.	You will see your Email inbox web page.
 
-![Workmail UI](./images/Workmail_ui.jpg)
+![Workmail UI](./Images/workmail-inbox.png)
 
 4.	Test this new email box by sending email from your personal email id.
 
@@ -116,7 +116,7 @@ After the stacks are succefully deployed (You can see if there is an error as th
 * This Lambda function will be invoked upon receiving the email on this domain	
 * Enter * in both Sender domain and destination domain
 
-![Workmail Login](./images/Workmail_rule_lambda.jpg)
+![Workmail Login](./Images/create-inbound-rule.png)
 
 
 Currently 3 type of custom email classifications will be used for automated response to customer email.
