@@ -86,28 +86,13 @@ Arguments to the stack creation :
 Note : Please note that these three deployments approximately 20 to 25 minutes
 
 After the stacks are succefully deployed (You can see if there is an error as the cdk output otherwise it says stacks creation succeful.), please open the .ipynb notebook from Sagemaker notebook instance and execute all the scripts in the notebook in sequence. 
-### Steps to open the .ipynb file from the notbook instance
-1. Go to AWS console and select the service 'Amazon Sagemaker'. Maker sure you are in us-east-1 region
-2. Select the Notebook menu and choose Notbook Instances
-![Notebook-Instance](./images/Notebook_Instance_image.jpeg)
-3. Click 'Open Jupyter' from the Action menu
-![ipython_notebook_screen](./images/jupyter_ipython_notebook_image.jpeg)
-4. You can see the notebook 'notebook-instance-comprehend-training' and click to open the notbook
-5. Run the script as per the instruction given in the notebook. Classification endpoint and Entity Detection endpoint will be created.  Please use these ARNs as the context variables for the next stack deployment.
 
-Below CDK Deployment will create AWS Lambda fucntions, Amazon SES and SNS notifications: Execute the following command by passing the context variables
-```
-cdk deploy email-reponse-automation-workflow-stack --parameters emailClassificationEndpointArn=<email classification endpoint ARN from sagemaker notebook>  --parameters humanWorkflowEmail=<Workflow Email> --parameters supportEmail=<support email id created part of the workmail-organization-domain-user-dev-stack> --parameters emailEntityRecognitionEndpointArn=<Enitity Detection endpoint ARN from sagemaker notbook>
-```
-Arguments to the stack creation :
-
-* `emailClassificationEndpointArn` (required) : email classification endpoint ARN from sagemaker notebook
-* `humanWorkflowEmail` (required) : email id to receive the SNS notification if customer email content does not match with any classifcation. The email id will subscribe from SNS topic and SNS will publish unclassified email to the topic. 
-* `supportEmail` (required) : Email id created part of the workmail org and user creation. This email id will receive email from the customer and invoke the lambda function
-* `emailEntityRecognitionEndpointArn` (required) : email entity recognition endpoint ARN from sagemaker notebook
 
 #### Setting up the Inbound rules in Amazon Workmail using the lambda function generated in previous stack :
 
+1. Go to Amazon Workmail service and click the organization from the left panel and choose the organization created.
+
+![Workmail Org Selection](./Images/select-workmail-org.png)
 
 1.	Click on ‘Organization Settings’ from the menu and in General section you will see the web-application link for your email.
 
@@ -127,7 +112,7 @@ Arguments to the stack creation :
 
 * Click on ‘Organization Settings’ and choose the ‘Inbound Rules’ menu
 * Click the button ‘Create rule’
-* Enter the Rule Name and Select the action ‘Run Lambda’ and choose ‘Custom Lambda function’ and select the lambda function generated in the previous stack deployment.
+* Enter the Rule Name and Select the action ‘Run Lambda’ and choose ‘Custom Lambda function’ and select the lambda function generated in the previous stack deployment. Function name will be "workmail-integration-lambda-fn + some random letters"
 * This Lambda function will be invoked upon receiving the email on this domain	
 * Enter * in both Sender domain and destination domain
 
