@@ -16,7 +16,7 @@ This response, tailored to address both known and unknown requests, was then sen
 The solution comprised of three cdk stacks.
 
 * `WorkmailOrgUserStack` : Creates the Amazon workmail with domain, user, inbox access.
-* `BedrockAgentCreation` : Creates the Amazon Bedrock Agent, Agent Group, OpenAPI Schema, S3 Bucket, DynamoDB Table, Agent Group Lambda for gettng the transfer status from DynamoDB .
+* `BedrockAgentCreation` : Creates the Amazon Bedrock Agent, Agent Action Group, OpenAPI Schema, S3 Bucket, DynamoDB Table, Agent Group Lambda for gettng the transfer status from DynamoDB .
 * 'EmailAutomationWorkflowStack': Creates the classification lambda which interact with Amazon Bedrock Agent and Integration Lambda which is integrated with Amazon Workmail.
 
 ## Pre-requisites
@@ -53,26 +53,37 @@ $ pip install -r requirements.txt
 ```
 4. Deploying the solution :
 
-Deploying new Sagemaker Notebook Instance with IAM Roles and pre-loaded .ipynb notebook : Execute following command by passing optional paramaters
+Deploying the Amazon workmail with domain, user, inbox access : Execute following command by passing optional paramaters
 ```
-cdk deploy comprehend-custom-classifier-dev-notebook-stack  --parameters NotebookName=<Notebook Name> --parameters NotebookConfigName=<Notebook Config Name> --parameters RoleName=<SageMaker execution role name>
+cdk deploy WorkmailOrgUserStack  --parameters OrganizationName=<Organization Name> --parameters UserName=<Support Username> --parameters PassWord=<Password>
 ```
 
-Arguments to the stack creation :
-* `NotbookName` :(optional) Name of the notbook instance. If not entered, default name 'notebook-instance-comprehend-training' will be used.
-* `NotebookConfigName` :(optional) Name of the  Notebook config. If not entered, default config name 'notebook-lifecycle-load-notebook' will be used.
-* `RoleName` : (Optional) Name of the Amazon Sagmaker Execution role name. If not entered, default role name 'sagemaker-notebook-execution-role' will be used.
-
-Deploying new Workmail domain, user, user registration and inbox: Execute following command by passing optional paramaters
-```
-cdk deploy workmail-organization-domain-user-dev-stack --parameters OrganizationName=<Organization Name> --parameters UserName=<Support Username> --parameters PassWord=<Password>
-```
 Arguments to the stack creation :
 * `OrganizationName` :(Required) Name of the workmail organization. If not entered, default name 'my-sample-workmail-org' will be used. Domain also will be created using this organization alias name. So make sure to use unique alias to avoid errors due to duplicate domain names.
 * `UserName` :(optional) Name of the your organization support user alias. If not entered, default user name 'support' will be used.
 * `PassWord` : (Optional) Password for the UserName. If not entered, default password 'Welcome@123' will be used.
 
-Note : Please note that these both deployments approximately 20 to 25 minutes
+Deploying Amazon Bedrock Agent, Alias, Action Group, OpenAPI Schema and Lambda function: Execute following command by passing optional paramaters
+```
+cdk deploy BedrockAgentCreation --parameters AgentName=<Bedrock Agent Name> --parameters ModelName=<Bedrock Claude Model Name>
+```
+Arguments to the stack creation :
+* `AgentName` :(Optional) Name of the Amazon Bedrock Agent. Default name is "my-email-bedrock-agent"
+* `ModelName` :(optional) Name of the Amazon Bedrock Claude Model. Default model is "anthropic.claude-3-sonnet-20240229-v1:0"
+
+Deploying Integration Lambda for Amazon WorkMail and Classification Lambda to call Amazon Bedrock Agent programitically: Execute following command by passing optional paramaters
+```
+cdk deploy EmailAutomationWorkflowStack --parameters AgentID=<Bedrock Agent ID> --parameters AgentAliasID=<Bedrock AgentAliasID> --parameters humanWorkflowEmail=<Workflow Email> --parameters supportEmail=<support email id created part of the WorkmailOrgUserStack>
+```
+Arguments to the stack creation :
+
+* `AgentID` (required) : 
+* `AgentAliasID` (required) : 
+* `humanWorkflowEmail` (required) : email id to receive the SNS notification if customer email content does not match with any classifcation. The email id will subscribe from SNS topic and SNS will publish unclassified email to the topic. 
+* `supportEmail` (required) : Email id created part of the workmail org and user creation. This email id will receive email from the customer and invoke the lambda function
+
+
+Note : Please note that these three deployments approximately 20 to 25 minutes
 
 After the stacks are succefully deployed (You can see if there is an error as the cdk output otherwise it says stacks creation succeful.), please open the .ipynb notebook from Sagemaker notebook instance and execute all the scripts in the notebook in sequence. 
 ### Steps to open the .ipynb file from the notbook instance
