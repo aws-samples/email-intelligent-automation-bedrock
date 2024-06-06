@@ -326,6 +326,12 @@ class BedrockAgentCreation(Stack):
         )
         
         cdk.CfnOutput(
+            self, "CustomResourceAgentId",
+            value=custom_resource_agent_id,#custom_output,#custom_resource_agent['Data']['ARN'],
+            description="Bedrock Agent ID "
+        )
+        
+        cdk.CfnOutput(
             self, "CustomResourceAgentActionId",
             value=custom_resource_agent_action_id,#custom_output,#custom_resource_agent['Data']['ARN'],
             description="Id of the Agent Action Groupresource"
