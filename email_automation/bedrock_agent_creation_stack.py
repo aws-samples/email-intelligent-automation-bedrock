@@ -39,12 +39,65 @@ class BedrockAgentCreation(Stack):
                 default='anthropic.claude-3-sonnet-20240229-v1:0' # enter the default model
                 )
         
+        # Create an IAM role for the Lambda function
+        create_agent_lambda_role = iam.Role(
+            self, "BedrockAgentLambdaRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("IAMFullAccess"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("AWSLambda_FullAccess"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonDynamoDBFullAccess"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonBedrockFullAccess")
+            ],
+            role_name="BedrockAgentLambdaRole"
+        )
+
+        # Add an inline policy with the necessary permissions
+        '''inline_policy = iam.Policy(
+            self, "BedrockAgentLambdaInlinePolicy",
+            policy_name="BedrockAgentLambdaInlinePolicy",
+                statements=[
+                    iam.PolicyStatement(
+                        actions=["iam:*"],
+                        resources=["*"],
+                        effect=iam.Effect.ALLOW
+                    ),
+                    iam.PolicyStatement(
+                        actions=["s3:*"],
+                        resources=["*"],
+                        effect=iam.Effect.ALLOW
+                    ),
+                    iam.PolicyStatement(
+                        actions=["lambda:*"],
+                        resources=["*"],
+                        effect=iam.Effect.ALLOW
+                    ),
+                    iam.PolicyStatement(
+                        actions=["dynamodb:*"],
+                        resources=["*"],
+                        effect=iam.Effect.ALLOW
+                    ),
+                    iam.PolicyStatement(
+                        actions=["bedrock:*"],
+                        resources=["*"],
+                        effect=iam.Effect.ALLOW
+                    )
+                ],
+            removal_policy=cdk.RemovalPolicy.RETAIN 
+            )
+        
+        create_agent_lambda_role.attach_inline_policy(inline_policy)'''
+
+        
         create_bedrock_agent_lambda = lambda_.Function(self, "id_bedrock_agent",
                                                       runtime=lambda_.Runtime.PYTHON_3_11,
                                                       function_name='bedrock_agent_creation',
                                                       code=lambda_.Code.from_asset(
                                                           "lambda/create-bedrock-agent-lambda"),
                                                       handler="bedrock_agent_creation_lambda.handler",
+                                                      role=create_agent_lambda_role,
                                                       #layers=[yaml_layer],
                                                       timeout = Duration.minutes(2),
                                                       environment= {'agent_name': agent_name_param.value_as_string,
@@ -54,7 +107,7 @@ class BedrockAgentCreation(Stack):
                                                      
         
                 
-        create_bedrock_agent_lambda.role.attach_inline_policy(
+        '''create_bedrock_agent_lambda.role.attach_inline_policy(
             iam.Policy(
                 self, "id_bedrock_agent_creation_lambda_policy",
                 policy_name = "bedrock_agent_custom_resource_policy",
@@ -71,7 +124,7 @@ class BedrockAgentCreation(Stack):
                     )
                 ]
             )
-        )
+        )'''
         
         create_bedrock_agent = Provider(self, "id_create_agent",
                                       on_event_handler=create_bedrock_agent_lambda,
@@ -84,11 +137,8 @@ class BedrockAgentCreation(Stack):
         
         custom_resource_agent_arn = custom_resource_agent.get_att("AgentARN").to_string()
         custom_resource_agent_id = custom_resource_agent.get_att("AgentId").to_string()
-        print("agent arn  :" + str(custom_resource_agent_arn))
-        print("agent id   :" + str(custom_resource_agent_id))
-        
-        # Create the S3 bucket
-        print("Creating S3 bucket and uploading the data")
+       
+        # creating S3 bucket to upload OpenAPI Schema
         bucket_name = f'bedrock-agent-demo-bucket-{random_string}'
         bucket = s3.Bucket(self,
             "MyBucket",
@@ -120,12 +170,10 @@ class BedrockAgentCreation(Stack):
         )
         
         
-        print(f"Created role {role_name}")
-        print("Waiting for the execution role to be fully propagated...")
+        #Waiting for IAM role to be fully propegated
         time.sleep(10)
         
         # Lambda function for agent action
-        print("Creating the Lambda function...")
         function_name = f"AmazonBedrockAgentAction_{random_role_string}"
         action_lambda = lambda_.Function(self,
                 function_name,
@@ -144,6 +192,7 @@ class BedrockAgentCreation(Stack):
                                                       code=lambda_.Code.from_asset(
                                                           "lambda/create-bedrock-agent-action-lambda"),
                                                       handler="bedrock_agent_action_lambda.handler",
+                                                      role=create_agent_lambda_role,
                                                       #layers=[yaml_layer],
                                                       timeout = Duration.minutes(2),
                                                       environment= {'agent_id': custom_resource_agent_id,
@@ -155,7 +204,7 @@ class BedrockAgentCreation(Stack):
                                                       )
                                                      
         
-        create_agent_action_lambda.role.attach_inline_policy(
+        '''create_agent_action_lambda.role.attach_inline_policy(
             iam.Policy(
                 self, "id_bedrock_agent_action_lambda_policy",
                 policy_name = "bedrock_agent_action_custom_resource_policy",
@@ -172,7 +221,7 @@ class BedrockAgentCreation(Stack):
                     )
                 ]
             )
-        )
+        )'''
         
         # Create the dependency between the custom resource and the dependent resource
         create_agent_action_lambda.node.add_dependency(custom_resource_agent)
@@ -188,9 +237,7 @@ class BedrockAgentCreation(Stack):
         custom_resource_agent_action= CustomResource(self, id="id_Bedrock_Agent_Action_Resource",
                        service_token=create_bedrock_agent_action_group.service_token)
         
-        custom_resource_agent_action_id = custom_resource_agent_action.get_att("AgentActionId").to_string()
-        
-        print ("agent_action_id is: " + str(custom_resource_agent_action_id))
+        custom_resource_agent_action_id = custom_resource_agent_action.get_att("ActionGroupId").to_string()
         
         
         # Define table properties
@@ -249,6 +296,33 @@ class BedrockAgentCreation(Stack):
             source_arn=custom_resource_agent_arn,  # Replace with your actual Bedrock Agent ARN
         )
         
+        
+        create_alias_lambda_role = iam.Role(
+            self, "BedrockAliasLambdaRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonBedrockFullAccess")
+            ],
+            role_name="BedrockAliasLambdaRole"
+        )
+
+        # Add an inline policy with the necessary permissions
+        '''alias_inline_policy = iam.Policy(
+            self, "BedrockAgentAliasLambdaInlinePolicy",
+            policy_name="BedrockAgentLambdaInlinePolicy",
+                statements=[
+                    iam.PolicyStatement(
+                        actions=["bedrock:*"],
+                        resources=["*"],
+                        effect=iam.Effect.ALLOW
+                    )
+                ],
+            removal_policy=cdk.RemovalPolicy.RETAIN
+            )
+        
+        create_alias_lambda_role.attach_inline_policy(alias_inline_policy)'''
+        
         # Create Agent Alias. It should be created after Agent action is created
         create_agent_alias_lambda = lambda_.Function(self, "id_bedrock_agent_alias",
                                                       runtime=lambda_.Runtime.PYTHON_3_9,
@@ -256,13 +330,14 @@ class BedrockAgentCreation(Stack):
                                                       code=lambda_.Code.from_asset(
                                                           "lambda/create-bedrock-agent-alias-lambda"),
                                                       handler="bedrock_agent_alias_lambda.handler",
+                                                      role=create_alias_lambda_role,
                                                       #layers=[yaml_layer],
                                                       timeout = Duration.minutes(2),
                                                       environment= {'agent_id': custom_resource_agent_id}
                                                       )
                                                      
         
-        create_agent_alias_lambda.role.attach_inline_policy(
+        '''create_agent_alias_lambda.role.attach_inline_policy(
             iam.Policy(
                 self, "id_bedrock_agent_alias_lambda_policy",
                 policy_name = "bedrock_agent_alias_custom_resource_policy",
@@ -275,7 +350,7 @@ class BedrockAgentCreation(Stack):
                     )
                 ]
             )
-        )
+        )'''
         
         # Create the dependency between the custom resource and the dependent resource
         create_agent_alias_lambda.node.add_dependency(custom_resource_agent_action)
@@ -293,12 +368,6 @@ class BedrockAgentCreation(Stack):
         
         custom_resource_agent_alias_id = custom_resource_alias.get_att("AgentAlias").to_string()
         custom_resource_agent_version_id = custom_resource_alias.get_att("AgentVersion").to_string()
-
-        
-        print ("agent_action_id is: " + str(custom_resource_agent_action_id))
-        
-        
-        #######
         
         cdk.CfnOutput(
             self, "ResponseMessageBucket",
@@ -332,7 +401,7 @@ class BedrockAgentCreation(Stack):
         )
         
         cdk.CfnOutput(
-            self, "CustomResourceAgentActionId",
+            self, "CustomResourceActionGroupId",
             value=custom_resource_agent_action_id,#custom_output,#custom_resource_agent['Data']['ARN'],
             description="Id of the Agent Action Groupresource"
         )

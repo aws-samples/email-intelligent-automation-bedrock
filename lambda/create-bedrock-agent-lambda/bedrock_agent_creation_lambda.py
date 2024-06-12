@@ -40,13 +40,14 @@ def handler(event, context):
                 }
             }
     elif request_type == 'Update': 
-        return on_update(event)
+        return on_update(event, context)
     elif request_type == 'Delete':
-        physical_id = event["PhysicalResourceId"]
-        return {'PhysicalResourceId': physical_id}
+        return on_delete(event, context)
+        #physical_id = event["PhysicalResourceId"]
+        #return {'PhysicalResourceId': physical_id}
     else:
         logger.error(f"Unsupported request type: {request_type}")
-        return {'PhysicalResourceId': 'Hello_ERROR'}
+        return {'PhysicalResourceId': 'ERROR'}
 
 def on_create(event,agent_name,model_name):
     props = event["ResourceProperties"]
@@ -151,28 +152,75 @@ def create_agent(agent_name,model_name,agent_role_arn):
     except ClientError as q:
         print("Error while creating the agent: %s" % q)
     
-        
-def on_update(event):
+def on_update(event, context):
     physical_id = event["PhysicalResourceId"]
     props = event["ResourceProperties"]
-    request_type = event["RequestType"]
-    print("Nothing to do as an update event : update resource %s with props %s" %
-        (physical_id, props))
-    response = {
-      'PhysicalResourceId': physical_id
-    }
-    return response
+    old_props = event.get("OldResourceProperties", {})
 
-def on_delete(event):
-    physical_id = event["PhysicalResourceId"]
-    props = event["ResourceProperties"]
-    request_type = event["RequestType"]
-    print("Nothing to do as an update event : Delete resource %s with props %s" %
-        (physical_id, props))
-    response = {
-      'PhysicalResourceId': physical_id
+    try:
+        # Extract the agent ID from the physical resource ID
+        agent_id = physical_id.split("/")[-1]
+
+        # Check if any properties have changed
+        if props != old_props:
+            # Update the agent properties
+            agent_name = props.get("AgentName", old_props.get("AgentName"))
+            model_name = props.get("ModelName", old_props.get("ModelName"))
+            instruction = props.get("Instruction", old_props.get("Instruction"))
+            agent_role_arn = props.get("AgentRoleArn", old_props.get("AgentRoleArn"))
+
+            print(f"Updating agent with ID: {agent_id}")
+            bedrock_agent_client.update_agent(
+                agentId=agent_id,
+                agentName=agent_name,
+                foundationModel=model_name,
+                instruction=instruction,
+                agentResourceRoleArn=agent_role_arn
+            )
+
+            # Wait for the agent to be updated
+            _wait_for_agent_status(agent_id, "PREPARED")
+
+            print(f"Agent with ID {agent_id} has been updated.")
+        else:
+            print(f"No changes detected for agent with ID {agent_id}. Skipping update.")
+
+    except Exception as e:
+        logger.error(f"Error updating agent: {e}")
+        raise
+
+    return {
+        'PhysicalResourceId': physical_id
     }
-    return response
+
+def on_delete(event, context):
+    physical_id = event["PhysicalResourceId"]
+    try:
+        # Extract the agent ID from the physical resource ID
+        agent_id = physical_id.split("/")[-1]
+        
+        # Delete the agent
+        print(f"Deleting agent with ID: {agent_id}")
+        bedrock_agent_client.delete_agent(agentId=agent_id)
+        
+        # Wait for the agent to be deleted
+        while True:
+            try:
+                agent_details = bedrock_agent_client.get_agent(agentId=agent_id)
+                if agent_details["agent"]["agentStatus"] == "DELETED":
+                    break
+            except bedrock_agent_client.exceptions.ResourceNotFoundException:
+                break
+            time.sleep(5)
+        
+        print(f"Agent with ID {agent_id} has been deleted.")
+    except Exception as e:
+        logger.error(f"Error deleting agent: {e}")
+        raise
+    
+    return {
+        'PhysicalResourceId': physical_id
+    }
         
 
 def _wait_for_agent_status(agent_id, status):

@@ -1,187 +1,128 @@
 import boto3
 import os
+import time
 from botocore.exceptions import ClientError
 
 
 client = boto3.client('workmail')
 
 def handler(event, context):
-  print(event)
   org_name = os.environ['work_org_name']
   user_name = os.environ['user_name']
+  user_password = os.environ['password']
   
   request_type = event['RequestType']
-  if request_type == 'Create': return on_create(event, org_name)
-  if request_type == 'Update': return on_update(event)
-  if request_type == 'Delete': return on_delete(event,user_name,org_name)
+  if request_type == 'Create': 
+      return on_create(event, org_name, user_name, user_password)
+  if request_type == 'Update': 
+      return on_update(event, context)
+  if request_type == 'Delete': 
+      return on_delete(event, context)
   raise Exception("Invalid request type: %s" % request_type)
 
-def on_create(event,orgName):
+def on_create(event, org_name, user_name, user_password):
     props = event["ResourceProperties"]
     print("create new resource with props %s" % props)
-    # call workmail organization api
+
     try:
-        workmail_response = client.create_organization(
-        Alias = orgName
+        # Create the WorkMail organization
+        workmail_response = client.create_organization(Alias=org_name)
+        org_id = workmail_response["OrganizationId"]
+        print(f"Created WorkMail organization with ID: {org_id}")
+
+        # Wait for the organization to become active
+        _wait_for_organization_state(org_id, "Active")
+
+        # Try to create the WorkMail user
+        try:
+            print("creating user")
+            user_response = client.create_user(
+                OrganizationId=org_id,
+                Name=user_name,
+                DisplayName=user_name,
+                Password=user_password
+            )
+            user_id = user_response["UserId"]
+            print(f"Created WorkMail user with ID: {user_id}")
+        except client.exceptions.NameAvailabilityException:
+            # User already exists, get the existing user ID
+            user_details = client.list_users(OrganizationId=org_id, MaxResults=1)
+            print(f"User {user_name} already exists with ID: {user_id}")
+
+        # Register the user to the WorkMail organization
+        print("register user to workmail org")
+        register_response = client.register_to_work_mail(
+            OrganizationId=org_id,
+            EntityId=user_id,
+            Email=f"{user_name}@{org_name}.awsapps.com"
         )
-        print (workmail_response)
-        response = {'PhysicalResourceId' : workmail_response['OrganizationId']}
+        print(f"Registered user to WorkMail organization: {register_response}")
+
+        # Set the physical resource ID to the organization ID and user ID
+        physical_resource_id = f"{org_id}/{user_id}"
+
+        response = {"PhysicalResourceId": physical_resource_id}
         return response
-    except ClientError as q:
-        print("Error while creating the organization: %s" % q)
 
+    except ClientError as e:
+        print(f"Error creating WorkMail organization or user: {e}")
+        raise
 
-def on_update(event):
+def _wait_for_organization_state(org_id, desired_state):
+    print ("Checking weather Org is Active")
+    while True:
+        org_details = client.describe_organization(OrganizationId=org_id)
+        current_state = org_details["State"]
+        print("Current State is "+ current_state)
+        if current_state == desired_state:
+            break
+        time.sleep(5)
+    #time.sleep(60)
+
+def on_update(event, context):
     physical_id = event["PhysicalResourceId"]
     props = event["ResourceProperties"]
-    request_type = event["RequestType"]
-    print("Nothing to do as an update event : update resource %s with props %s" %
-        (physical_id, props))
-    response = {
-      'PhysicalResourceId': physical_id
+    print(f"Updating resource with PhysicalResourceId: {physical_id} and props: {props}")
+
+    # There's nothing to update for this custom resource
+    # since the organization and user are immutable
+    return {
+        "PhysicalResourceId": physical_id
     }
-    return response
 
-def on_delete(event,user_name,org_name):
+def on_delete(event, context):
     physical_id = event["PhysicalResourceId"]
-    print("delete resource %s" % physical_id)
-    
-    list_orgs = client.list_organizations()
-    for orgs in list_orgs['OrganizationSummaries']:
-        if orgs['Alias'] == org_name:
-           org_id = orgs['OrganizationId']
-    
-    user_avail = client.list_users(
-                            OrganizationId=org_id
-                                            )
-    for x in user_avail['Users']:
-        print('start deleting users')
-        if x['Name'] == user_name:
-            del_dereg_from_workmail(org_id,x['Id'])
-            response = {
-                        'PhysicalResourceId' : physical_id,
-                        'OrganizationID' : org_id
-                            }        
+    print(f"Deleting resource with PhysicalResourceId: {physical_id}")
+
     try:
-        del_org_response = client.delete_organization(
-                    OrganizationId=org_id,
-                    DeleteDirectory=True
-                    )
-        print(del_org_response)
-        response = {
-                        'PhysicalResourceId' : physical_id,
-                        'OrganizationID' : org_id
-                    }
-        return response
-    except ClientError as m:
-                print("Error while deleting the organization: %s" % m)
-                raise m
-                
-            
-def del_dereg_from_workmail(org_id,ent_id):
-    try:
-        dereg_response = client.deregister_from_work_mail(
-                        OrganizationId=org_id,
-                        EntityId=ent_id
-                                )
-        print(dereg_response)               
-    except ClientError as k:
-        print("Error while deregistering the users: %s" % k)
-        raise k
-    
-    try:
-        del_user_response = client.delete_user(
-                                OrganizationId=org_id,
-                                UserId=ent_id
-                                )
-        print(del_user_response)
-    except ClientError as l:
-            print("Error while deleting the users: %s" % l)
-            raise l
+        # Extract the organization ID and user ID from the physical resource ID
+        org_id, user_id = physical_id.split("/")
 
+        # Deregister the user from the WorkMail organization
+        client.deregister_from_work_mail(
+            OrganizationId=org_id,
+            EntityId=user_id
+        )
+        print(f"Deregistered user with ID {user_id} from WorkMail organization {org_id}")
 
+        # Delete the user
+        client.delete_user(
+            OrganizationId=org_id,
+            UserId=user_id
+        )
+        print(f"Deleted user with ID {user_id} from WorkMail organization {org_id}")
 
-# the workmail user creation and assign user to workmail domain has depndancies on below resources
-# organization and domain - both should be in active state
+        # Delete the organization
+        client.delete_organization(
+            OrganizationId=org_id,
+            DeleteDirectory=True  # Assuming you want to delete the associated directory
+        )
+        print(f"Deleted WorkMail organization with ID {org_id}")
 
-def is_complete(event, context):
-    org_name = os.environ['work_org_name']
-    user_name = os.environ['user_name']
-    password = os.environ['password']
-    physical_id = event["PhysicalResourceId"]
-    request_type = event["RequestType"]
+    except ClientError as e:
+        print(f"Error deleting WorkMail organization or user: {e}")
+        raise
 
-    if request_type == 'Create':
-    # check if resource is stable based on request_type
-        is_response = client.list_organizations()
-        #print(is_response)
-        is_ready = False
-        for i in is_response['OrganizationSummaries']:
-            #checking the status of the organization created
-            if i['State'] == "Active" and i['Alias'] == org_name:
-                print ('user getting created.....')
-                #if yes creating the user and registering the user is done. if not goes to exception block
-                try:
-                    user_response = client.create_user(
-                                        OrganizationId=i['OrganizationId'],
-                                        Name=user_name,
-                                        DisplayName=user_name,
-                                        Password=password)
-                    print(user_response)
-                    reg_user_response = client.register_to_work_mail(
-                                        OrganizationId=i['OrganizationId'],
-                                        EntityId=user_response['UserId'],
-                                        Email=user_name+'@'+org_name+'.awsapps.com')
-                    print(reg_user_response)
-                    is_ready = True
-                except ClientError as e:
-                    print(e.response)
-                    # if the error is NameAvailabilityException, it will go for user registeration for email
-                    if e.response['Error']['Code'] == 'NameAvailabilityException':
-                        print("User already exists..registering user to the domain")
-                        try:
-                            user_avail = client.list_users(
-                                                OrganizationId=i['OrganizationId'],
-                                                MaxResults=1
-                                                )
-                            for x in user_avail['Users']:
-                                print('start registering users')
-                                if x['Name'] == user_name:
-                                    print(x['Id'])
-                                    try:    
-                                        reg_user_response = client.register_to_work_mail(
-                                                    OrganizationId=i['OrganizationId'],
-                                                    EntityId=x['Id'],
-                                                    Email=user_name+'@'+org_name+'.awsapps.com')
-                                        is_ready = True
-                                        print (reg_user_response)
-                                    except ClientError as g:
-                                        print(g.response)
-                                        if g.response['Error']['Code'] == 'MailDomainStateException':
-                                            print('Domain is still getting created..please wait')
-                                            is_ready = False
-                                        else:                                       
-                                            print("Unexpected error: %s" % g) 
-                                            #is_ready = True 
-                                            raise g
-                        except ClientError as f:
-                            print(f.response)
-                            # if the error is NameAvailabilityException (means user already exist) and should go to user registration
-                            if f.response['Error']['Code'] == 'NameAvailabilityException':
-                                is_ready = False
-                                print ('Domain is still getting created..please wait')
-                            else:
-                                print("Unexpected error on listing users: %s" % f)
-                                #is_ready = True
-                                raise f
-                    elif e.response['Error']['Code'] == 'MailDomainStateException':
-                        print('Domain is still getting created..please wait')
-                        is_ready = False
-                    else:
-                        print("Unexpected error: %s" % e)     
-                        #is_ready = True
-                        raise e
-        return { 'IsComplete': is_ready }
-    elif request_type == 'Delete':
-        is_ready = True
-        return { 'IsComplete': is_ready }
+    return {
+        "PhysicalResourceId": physical_id
+    }
