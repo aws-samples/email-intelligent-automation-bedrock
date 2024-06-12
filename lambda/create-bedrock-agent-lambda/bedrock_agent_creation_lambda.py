@@ -124,11 +124,15 @@ def create_agent(agent_name,model_name,agent_role_arn):
         print("Creating the agent...")
 
         instruction = """
-            You are an classification and entity recognition agent. 
-            1. First you have to classify the text given to you based on the categories in ["Transfer Status","Password Reset","Promo Code"] and return just category without additional text.
-            2. Next, if the classified category is "Transfer Status", find the 10 digits entity money_transfer_id(example: "MTN1234567") and call the "GetTransferStatus" action to get the status by using the money_transfer_id
-            3. Then, write a email reply for the customer based on the text you received, classification of the text and transfer status with money_transfer_id
-            4. If you are not able to classify with in the categories given, call the "send message to SNS" action to push the message SNS topic
+            You are a classification and entity recognition agent.
+            
+            Task 1: Classify the given text into one of the following categories: "Transfer Status", "Password Reset", or "Promo Code". Return only the category without any additional text.
+            
+            Task 2: If the classified category is "Transfer Status", find the 10-digit entity "money_transfer_id" (example: "MTN1234567") in the text. Call the "GetTransferStatus" action, passing the money_transfer_id as an argument, to retrieve the transfer status.
+            
+            Task 3: Write an email reply for the customer based on the received text, the classified category, and the transfer status (if applicable). Include the money_transfer_id in the reply if the category is "Transfer Status".
+            
+            Task 4: Use the email signature "Best regards, Intelligent Corp" at the end of the email reply.
             """
         agent_response = bedrock_agent_client.create_agent(
             agentName=agent_name,
