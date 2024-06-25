@@ -45,13 +45,45 @@ class BedrockAgentCreation(Stack):
             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
-                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess"),
-                iam.ManagedPolicy.from_aws_managed_policy_name("IAMFullAccess"),
                 iam.ManagedPolicy.from_aws_managed_policy_name("AWSLambda_FullAccess"),
-                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonDynamoDBFullAccess"),
                 iam.ManagedPolicy.from_aws_managed_policy_name("AmazonBedrockFullAccess")
             ],
-            role_name="BedrockAgentLambdaRole"
+            role_name="BedrockAgentLambdaRole",
+            inline_policies={
+                "S3Access": iam.PolicyDocument(
+                    statements=[
+                        iam.PolicyStatement(
+                            actions=["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+                            resources=["*"],
+                            effect=iam.Effect.ALLOW
+                        )
+                    ]
+                ),
+                "DynamoDBAccess": iam.PolicyDocument(
+                    statements=[
+                        iam.PolicyStatement(
+                            actions=["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem"],
+                            resources=["*"],
+                            effect=iam.Effect.ALLOW
+                        )
+                    ]
+                ),
+                "PassRoleAccess": iam.PolicyDocument(
+                    statements=[
+                        iam.PolicyStatement(
+                            actions=["iam:PassRole",
+                                    "iam:CreateRole",
+                                    "iam:AttachRolePolicy",
+                    				"iam:PutRolePolicy",
+                    				"iam:DeleteRolePolicy",
+                    				"iam:DetachRolePolicy",
+                    				"iam:DeleteRole"],
+                            resources=["*"],
+                            effect=iam.Effect.ALLOW
+                        )
+                    ]
+                )
+            }
         )
 
         create_bedrock_agent_lambda = lambda_.Function(self, "id_bedrock_agent",
@@ -190,8 +222,26 @@ class BedrockAgentCreation(Stack):
             role_name=role_name_ddb,
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
-                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonDynamoDBFullAccess"),
+                #iam.ManagedPolicy.from_aws_managed_policy_name("AmazonDynamoDBFullAccess"),
             ],
+            inline_policies={
+                "DynamoDBAccess": iam.PolicyDocument(
+                    statements=[
+                        iam.PolicyStatement(
+                            actions=[
+                                "dynamodb:GetItem",
+                                "dynamodb:PutItem",
+                                "dynamodb:UpdateItem",
+                                "dynamodb:DeleteItem",
+                                "dynamodb:CreateTable",
+                                "dynamodb:DeleteTable"
+                            ],
+                            resources=["*"],
+                            effect=iam.Effect.ALLOW
+                        )
+                    ]
+                )
+            }
         )
         
         # Define the Lambda function to upload data to DynamoDB
