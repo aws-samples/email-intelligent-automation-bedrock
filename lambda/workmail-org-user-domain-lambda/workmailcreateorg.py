@@ -77,7 +77,7 @@ def _wait_for_organization_state(org_id, desired_state):
         if current_state == desired_state:
             break
         time.sleep(5)
-    #time.sleep(60)
+    time.sleep(60)
 
 def on_update(event, context):
     physical_id = event["PhysicalResourceId"]
