@@ -81,10 +81,11 @@ Arguments to the stack creation :
 * `ModelName` :(optional) Name of the Amazon Bedrock Claude Model. Default model is "anthropic.claude-3-sonnet-20240229-v1:0"
 
 # Export the agentID and agentAliasID from the previous stack to an environment variable which is used in the later stage.
-
+```
 export AGENT_ID=$(aws cloudformation describe-stacks --stack-name BedrockAgentCreation --query 'Stacks[0].Outputs[?OutputKey=='CustomResourceAgentId'].OutputValue' --output text)
 
 export AGENT_ALIAS_ID=$(aws cloudformation describe-stacks --stack-name BedrockAgentCreation --query 'Stacks[0].Outputs[?OutputKey=='CustomResourceAgentAliasId'].OutputValue' --output text)
+```
 
 # Update your email address to which will receive the SNS notification.
 export MY_WORKFLOW_EMAIL_ID= < Workflow Email Address>
