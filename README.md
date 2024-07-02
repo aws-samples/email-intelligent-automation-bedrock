@@ -55,13 +55,21 @@ $ pip install -r requirements.txt
 
 Deploying the Amazon workmail with domain, user, inbox access : Execute following command by passing optional paramaters
 ```
+# Make sure to update the AWS_REGION to use one of the region where workmail is available. Say, 
+
+export AWS_REGION=us-east-1 # Amazon workmail available only in us-east-1(N.Virginia) or us-west-2(Oregon) or eu-west-1(Ireland)
+
 cdk deploy WorkmailOrgUserStack  --parameters OrganizationName=<Organization Name> --parameters UserName=<Support Username> --parameters PassWord=<Password>
 ```
 
 Arguments to the stack creation :
-* `OrganizationName` :(Required) Name of the workmail organization. If not entered, default name 'my-sample-workmail-org' will be used. Domain also will be created using this organization alias name. So make sure to use unique alias to avoid errors due to duplicate domain names.
+* `OrganizationName` :(optional) Name of the workmail organization. If not entered, default name 'my-sample-workmail-org-<random-suffix>' will be used. Domain also will be created using this organization alias name. 
 * `UserName` :(optional) Name of the your organization support user alias. If not entered, default user name 'support' will be used.
 * `PassWord` : (Optional) Password for the UserName. If not entered, default password 'Welcome@123' will be used.
+
+# Export the support email address from the previous stack to an environment variable which is used in the later stage.
+
+export SUPPORT_EMAIL=$(aws cloudformation describe-stacks --stack-name WorkmailOrgUserStack --query 'Stacks[0].Outputs[?OutputKey==`ResponseMessage`].OutputValue' --output text)
 
 Deploying Amazon Bedrock Agent, Alias, Action Group, OpenAPI Schema and Lambda function: Execute following command by passing optional paramaters
 ```
@@ -71,16 +79,26 @@ Arguments to the stack creation :
 * `AgentName` :(Optional) Name of the Amazon Bedrock Agent. Default name is "my-email-bedrock-agent"
 * `ModelName` :(optional) Name of the Amazon Bedrock Claude Model. Default model is "anthropic.claude-3-sonnet-20240229-v1:0"
 
-Deploying Integration Lambda for Amazon WorkMail and Classification Lambda to call Amazon Bedrock Agent programitically: Execute following command by passing optional paramaters
+# Export the agentID and agentAliasID from the previous stack to an environment variable which is used in the later stage.
+
+export AGENT_ID=$(aws cloudformation describe-stacks --stack-name BedrockAgentCreation --query 'Stacks[0].Outputs[?OutputKey==`CustomResourceAgentId`].OutputValue' --output text)
+
+export AGENT_ALIAS_ID=$(aws cloudformation describe-stacks --stack-name BedrockAgentCreation --query 'Stacks[0].Outputs[?OutputKey==`CustomResourceAgentAliasId`].OutputValue' --output text)
+
+# Update your email address to which will receive the SNS notification.
+export MY_WORKFLOW_EMAIL_ID=<Workflow Email>
+
+Deploying Integration Lambda for Amazon WorkMail and Classification Lambda to call Amazon Bedrock Agent programitically: Execute following command 
+
 ```
-cdk deploy EmailAutomationWorkflowStack --parameters AgentID=<Bedrock Agent ID> --parameters AgentAliasID=<Bedrock AgentAliasID> --parameters humanWorkflowEmail=<Workflow Email> --parameters supportEmail=<support email id created part of the WorkmailOrgUserStack>
+cdk deploy EmailAutomationWorkflowStack --parameters AgentID=$AGENT_ID --parameters AgentAliasID=$AGENT_ALIAS_ID --parameters humanWorkflowEmail=$MY_WORKFLOW_EMAIL_ID --parameters supportEmail=$SUPPORT_EMAIL
 ```
 Arguments to the stack creation :
 
 * `AgentID` (required) : Output from the previous stack "BedrockAgentCreation" deployment. This is to refer Amazon Bedrock Agent ID to classification lambda.
 * `AgentAliasID` (required) : Output from the previous stack "BedrockAgentCreation" deployment. This is to refer Amazon Bedrock Agent Alias ID to classification lambda.
 * `humanWorkflowEmail` (required) : email id to receive the SNS notification if customer email content does not match with any classifcation. The email id will subscribe from SNS topic and SNS will publish unclassified email to the topic. 
-* `supportEmail` (required) : Email id created part of the workmail org and user creation. This email id will receive email from the customer and invoke the lambda function
+* `supportEmail` (required) : Output from the previous stack "WorkmailOrgUserStack" deployment (in this case, it is stored in SUPPORT_EMAIL variable). This email id will receive email from the customer and invoke the lambda function.
 
 
 Note : Please note that these three deployments approximately 20 to 25 minutes
@@ -152,9 +170,9 @@ To avoid incurring ongoing costs, delete the resources you created as part of th
 
 1. `cdk destroy EmailAutomationWorkflowStack`
 
-2. `cdk deploy BedrockAgentCreation`
+2. `cdk destroy BedrockAgentCreation`
 
-3. `cdk deploy BedrockAgentCreation`
+3. `cdk destroy WorkmailOrgUserStack`
 
 ## Security
 

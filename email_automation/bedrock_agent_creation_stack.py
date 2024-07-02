@@ -312,20 +312,20 @@ class BedrockAgentCreation(Stack):
         cdk.CfnOutput(
             self, "ResponseMessageBucket",
             description="Your Bucket is",
-            value="Your bucket info is:  "+ bucket.bucket_arn,
+            value=bucket.bucket_arn,
             export_name="MyBucketArnExport"
         )
         cdk.CfnOutput(
             self, "ResponseMessageActionLambda",
             description="Your Function ARN is",
-            value="Your Lambda ARN is:  "+ action_lambda.function_arn
+            value=action_lambda.function_arn
             #export_name="MyLambdaArnExport"
         )
         
         cdk.CfnOutput(
             self, "ResponseMessageAgent",
             description="Your Agent Name is",
-            value="Your agent name is:  "+ agent_name_param.value_as_string                                                                                              
+            value=agent_name_param.value_as_string                                                                                              
         )
         
         cdk.CfnOutput(

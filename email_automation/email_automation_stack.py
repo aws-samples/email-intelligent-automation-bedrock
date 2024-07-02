@@ -11,6 +11,8 @@ from aws_cdk import (
 from constructs import Construct
 from aws_cdk.custom_resources import Provider
 import aws_cdk as cdk
+import random
+import string
 
 class WorkmailOrgUserStack(Stack):
 
@@ -18,10 +20,17 @@ class WorkmailOrgUserStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
         
         
-        orgname_param = cdk.CfnParameter(self, "OrganizationName",
-                #type="String",
-                default='my-sample-workmail-org'
-                )
+        prefix = 'my-sample-workmail-org'
+        length = 8
+        random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+        org_name = f"{prefix}-{random_suffix}"
+        #org_name_hash = hashlib.sha256(org_name.encode()).hexdigest():8
+
+        orgname_param = cdk.CfnParameter(
+        self,
+        f"OrganizationName-{org_name}",
+        default=org_name
+        )
 
         username_param = cdk.CfnParameter(self, "UserName",
                 #type="String",
@@ -91,5 +100,5 @@ class WorkmailOrgUserStack(Stack):
         cdk.CfnOutput(
             self, "ResponseMessage",
             description="Your support email address is",
-            value="Your support email address is:  "+ username_param.value_as_string+'@'+orgname_param.value_as_string+'.awsapps.com'                                                                                              
+            value=username_param.value_as_string+'@'+orgname_param.value_as_string+'.awsapps.com'                                                                                              
         )

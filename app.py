@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os
-import yaml
+#import yaml
 
 import aws_cdk as cdk
 
