@@ -65,7 +65,7 @@ cdk deploy WorkmailOrgUserStack  --parameters OrganizationName=<Organization Nam
 Arguments to the stack creation :
 * `OrganizationName` :(optional) Name of the workmail organization. If not entered, default name 'my-sample-workmail-org-<random-suffix>' will be used. Domain also will be created using this organization alias name. 
 * `UserName` :(optional) Name of the your organization support user alias. If not entered, default user name 'support' will be used.
-* `PassWord` : (Optional) Password for the UserName. If not entered, default password 'Welcome@123' will be used.
+* `PassWord` : (optional) Password for the UserName. If not entered, default password 'Welcome@123' will be used.
 
 # Export the support email address from the previous stack to an environment variable which is used in the later stage.
 
@@ -76,7 +76,7 @@ Deploying Amazon Bedrock Agent, Alias, Action Group, OpenAPI Schema and Lambda f
 cdk deploy BedrockAgentCreation --parameters AgentName=<Bedrock Agent Name> --parameters ModelName=<Bedrock Claude Model Name>
 ```
 Arguments to the stack creation :
-* `AgentName` :(Optional) Name of the Amazon Bedrock Agent. Default name is "my-email-bedrock-agent"
+* `AgentName` :(optional) Name of the Amazon Bedrock Agent. Default name is "my-email-bedrock-agent"
 * `ModelName` :(optional) Name of the Amazon Bedrock Claude Model. Default model is "anthropic.claude-3-sonnet-20240229-v1:0"
 
 # Export the agentID and agentAliasID from the previous stack to an environment variable which is used in the later stage.
