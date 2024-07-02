@@ -103,7 +103,9 @@ Arguments to the stack creation :
 * `supportEmail` (required) : Output from the previous stack "WorkmailOrgUserStack" deployment (in this case, it is stored in SUPPORT_EMAIL variable). This email id will receive email from the customer and invoke the lambda function.
 
 
-Note : Please note that these three deployments approximately 20 to 25 minutes
+Note : Please note that these three deployments approximately 20 to 25 minutes. Also, you will get the subcription confirmation notification to humanworkflow email given in the parameter. Please confirm subscription before testing the solution.
+
+![Human Workflow Email](./Images/humanworkflowemail.png)
 
 After the stacks are succefully deployed (You can see if there is an error as the cdk output otherwise it says stacks creation succeful.), please open the .ipynb notebook from Sagemaker notebook instance and execute all the scripts in the notebook in sequence. 
 
