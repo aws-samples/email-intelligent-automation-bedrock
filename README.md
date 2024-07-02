@@ -69,7 +69,7 @@ Arguments to the stack creation :
 
 # Export the support email address from the previous stack to an environment variable which is used in the later stage.
 
-export SUPPORT_EMAIL=$(aws cloudformation describe-stacks --stack-name WorkmailOrgUserStack --query 'Stacks[0].Outputs[?OutputKey==`ResponseMessage`].OutputValue' --output text)
+export SUPPORT_EMAIL=$(aws cloudformation describe-stacks --stack-name WorkmailOrgUserStack --query 'Stacks[0].Outputs[?OutputKey=='ResponseMessage'].OutputValue' --output text)
 
 Deploying Amazon Bedrock Agent, Alias, Action Group, OpenAPI Schema and Lambda function: Execute following command by passing optional paramaters
 ```
@@ -81,9 +81,9 @@ Arguments to the stack creation :
 
 # Export the agentID and agentAliasID from the previous stack to an environment variable which is used in the later stage.
 
-export AGENT_ID=$(aws cloudformation describe-stacks --stack-name BedrockAgentCreation --query 'Stacks[0].Outputs[?OutputKey==`CustomResourceAgentId`].OutputValue' --output text)
+export AGENT_ID=$(aws cloudformation describe-stacks --stack-name BedrockAgentCreation --query 'Stacks[0].Outputs[?OutputKey=='CustomResourceAgentId'].OutputValue' --output text)
 
-export AGENT_ALIAS_ID=$(aws cloudformation describe-stacks --stack-name BedrockAgentCreation --query 'Stacks[0].Outputs[?OutputKey==`CustomResourceAgentAliasId`].OutputValue' --output text)
+export AGENT_ALIAS_ID=$(aws cloudformation describe-stacks --stack-name BedrockAgentCreation --query 'Stacks[0].Outputs[?OutputKey=='CustomResourceAgentAliasId'].OutputValue' --output text)
 
 # Update your email address to which will receive the SNS notification.
 export MY_WORKFLOW_EMAIL_ID= < Workflow Email Address>
