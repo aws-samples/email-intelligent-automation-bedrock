@@ -86,7 +86,7 @@ export AGENT_ID=$(aws cloudformation describe-stacks --stack-name BedrockAgentCr
 export AGENT_ALIAS_ID=$(aws cloudformation describe-stacks --stack-name BedrockAgentCreation --query 'Stacks[0].Outputs[?OutputKey==`CustomResourceAgentAliasId`].OutputValue' --output text)
 
 # Update your email address to which will receive the SNS notification.
-export MY_WORKFLOW_EMAIL_ID=<Workflow Email>
+export MY_WORKFLOW_EMAIL_ID= < Workflow Email Address>
 
 Deploying Integration Lambda for Amazon WorkMail and Classification Lambda to call Amazon Bedrock Agent programitically: Execute following command 
 
