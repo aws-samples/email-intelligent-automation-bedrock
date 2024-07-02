@@ -69,7 +69,7 @@ Arguments to the stack creation :
 
 # Export the support email address from the previous stack to an environment variable which is used in the later stage.
 
-export SUPPORT_EMAIL=$(aws cloudformation describe-stacks --stack-name WorkmailOrgUserStack --query 'Stacks[0].Outputs[?OutputKey=='`ResponseMessage`'].OutputValue' --output text)
+export SUPPORT_EMAIL=$(aws cloudformation describe-stacks --stack-name WorkmailOrgUserStack --query 'Stacks[0].Outputs[?OutputKey==``ResponseMessage``].OutputValue' --output text)
 
 Deploying Amazon Bedrock Agent, Alias, Action Group, OpenAPI Schema and Lambda function: Execute following command by passing optional paramaters
 ```
