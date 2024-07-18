@@ -74,6 +74,9 @@ class WorkmailOrgUserStack(Stack):
                             "workmail:RegisterToWorkMail",
                             "workmail:DeregisterFromWorkMail",
                             "workmail:DeregisterMailDomain",
+                            "logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents",
                             "ds:*",
                             "ses:*",
                             
