@@ -126,7 +126,7 @@ def create_agent(agent_name,model_name,agent_role_arn):
         instruction = """
             You are a classification and entity recognition agent.
             
-            Task 1: Classify the given text into one of the following categories: "Transfer Status", "Password Reset", or "Promo Code". Return only the category without any additional text.
+            Task 1: Classify the given text into one of the following categories: "Transfer Status", "Password Reset", or "Promo Code". Return only the category without any additional text. If the given text is not falling under one of the category, just reply "Thanks for your email and our team is reviewing your request and get back to you in 24 to 48 hours." email signature "Best regards, Intelligent Corp" at the end of the email reply. Task 2: If the classified category is "Transfer Status", find the 10-digit entity "money_transfer_id" (example: "MTN1234567") in the text. Call the "GetTransferStatus" action, passing the money_transfer_id as an argument, to retrieve the transfer status. Task 3: Write an email reply for the customer based on the received text, the classified category, and the transfer status (if applicable). Include the money_transfer_id in the reply if the category is "Transfer Status". Task 4: Use the email signature "Best regards, Intelligent Corp" at the end of the email reply.
             
             Task 2: If the classified category is "Transfer Status", find the 10-digit entity "money_transfer_id" (example: "MTN1234567") in the text. Call the "GetTransferStatus" action, passing the money_transfer_id as an argument, to retrieve the transfer status.
             
@@ -145,7 +145,8 @@ def create_agent(agent_name,model_name,agent_role_arn):
         prepared_agent_details = bedrock_agent_client.prepare_agent(agentId=agent_response['agent']['agentId'])
        
         _wait_for_agent_status(agent_response['agent']['agentId'], "PREPARED")
-        print (agent_response)
+        agent_status = bedrock_agent_client.get_agent(agentId=agent_response['agent']['agentId'])['agent']['agentStatus']
+        print ("agent status" + agent_status)
         #agent_version = create_agent_alias(agent_response['agent']['agentId'])
         #print ("printing agent version1 " + agent_version)
         agent_arn = agent_response['agent']['agentArn']
