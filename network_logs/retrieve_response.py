@@ -6,6 +6,10 @@ from botocore.exceptions import ClientError
 import json
 import chromadb
 from sentence_transformers import SentenceTransformer
+import warnings
+
+#ignore any warning messages
+warnings.filterwarnings('ignore')
 
 parser = argparse.ArgumentParser(description='Aggument parser to call Bedrock Models')
 
