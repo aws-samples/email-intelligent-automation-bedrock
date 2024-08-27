@@ -132,3 +132,87 @@ except RequestError as e:
     # you can delete the index if its already exists
     # oss_client.indices.delete(index=index_name)
     print(f'Error while trying to create the index, with error {e.error}\nyou may unmark the delete above to delete, and recreate the index')
+
+
+s3_client.upload_file("/home/ec2-user/fm_onprem/network_logs.csv", bucket_name, "data/network_logs.csv")
+
+opensearchServerlessConfiguration = {
+            "collectionArn": collection["createCollectionDetail"]['arn'],
+            "vectorIndexName": index_name,
+            "fieldMapping": {
+                "vectorField": "vector",
+                "textField": "text",
+                "metadataField": "text-metadata"
+            }
+        }
+
+# Ingest strategy - How to ingest data from the data source
+chunkingStrategyConfiguration = {
+    "chunkingStrategy": "FIXED_SIZE",
+    "fixedSizeChunkingConfiguration": {
+        "maxTokens": 512,
+        "overlapPercentage": 20
+    }
+}
+
+# The data source to ingest documents from, into the OpenSearch serverless knowledge base index
+s3Configuration = {
+    "bucketArn": f"arn:aws:s3:::{bucket_name}",
+    # "inclusionPrefixes":["*.*"] # you can use this if you want to create a KB using data within s3 prefixes.
+}
+
+# The embedding model used by Bedrock to embed ingested documents, and realtime prompts
+embeddingModelArn = f"arn:aws:bedrock:{region_name}::foundation-model/amazon.titan-embed-text-v1"
+
+name = f"bedrock-sample-knowledge-base-{suffix}"
+description = "Amazon shareholder letter knowledge base."
+roleArn = bedrock_kb_execution_role_arn
+
+# Create a KnowledgeBase
+from retrying import retry
+
+@retry(wait_random_min=1000, wait_random_max=2000,stop_max_attempt_number=7)
+def create_knowledge_base_func():
+    create_kb_response = bedrock_agent_client.create_knowledge_base(
+        name = name,
+        description = description,
+        roleArn = roleArn,
+        knowledgeBaseConfiguration = {
+            "type": "VECTOR",
+            "vectorKnowledgeBaseConfiguration": {
+                "embeddingModelArn": embeddingModelArn
+            }
+        },
+        storageConfiguration = {
+            "type": "OPENSEARCH_SERVERLESS",
+            "opensearchServerlessConfiguration":opensearchServerlessConfiguration
+        }
+    )
+    return create_kb_response["knowledgeBase"]
+
+try:
+    kb = create_knowledge_base_func()
+except Exception as err:
+    print(f"{err=}, {type(err)=}")
+
+get_kb_response = bedrock_agent_client.get_knowledge_base(knowledgeBaseId = kb['knowledgeBaseId'])
+
+# Create a DataSource in KnowledgeBase 
+create_ds_response = bedrock_agent_client.create_data_source(
+    name = name,
+    description = description,
+    knowledgeBaseId = kb['knowledgeBaseId'],
+    dataSourceConfiguration = {
+        "type": "S3",
+        "s3Configuration":s3Configuration
+    },
+    vectorIngestionConfiguration = {
+        "chunkingConfiguration": chunkingStrategyConfiguration
+    }
+)
+ds = create_ds_response["dataSource"]
+
+# Get DataSource 
+#bedrock_agent_client.get_data_source(knowledgeBaseId = kb['knowledgeBaseId'], dataSourceId = ds["dataSourceId"])
+
+print ("KB ID  :"+ kb['knowledgeBaseId']+ "  dataSourceId  :"+ ds["dataSourceId"])
