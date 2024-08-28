@@ -1,0 +1,286 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create a VPC with public subnets, key pair, EC2 instance, and security group
+
+Parameters:
+  MyIPAddress:
+    Description: The IP address range that can be used to SSH to the EC2 instance
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: hybrid-genai-vpc
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: 10.0.0.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Public Subnet 1
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Public Subnet 2
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Public Route Table
+
+  Route:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref RouteTable
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: SSH Access
+      GroupDescription: Allow SSH access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref MyIPAddress
+      VpcId: !Ref VPC
+  
+  KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: hybrid-genai-keypair
+
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess
+        - arn:aws:iam::aws:policy/AmazonBedrockFullAccess
+      Policies:
+        - PolicyName: BedrockInvokeModelPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "bedrock:InvokeModel"
+                  - "bedrock:InvokeModelWithResponseStream"
+                  - "iam:CreatePolicy"
+                  - "iam:CreateRole"
+                  - "iam:AttachRolePolicy"
+                  - "iam:PassRole"
+                  - "iam:DeleteRole"
+                  - "iam:AttachRolePolicy"
+                  - "iam:DetachRolePolicy"
+                  - "iam:CreateServiceLinkedRole"
+                  - "aoss:*"
+                Resource: "*"
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2Role
+
+  EC2Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-02d3770deb1c746ec # Amazon Linux 2023 AMI
+      InstanceType: c5.2xlarge
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      KeyName: !Ref KeyPair
+      Tags:
+        - Key: Name
+          Value: kb_on_ec2
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: '1000'
+            VolumeType: gp3
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref SecurityGroup
+          SubnetId: !Ref PublicSubnet1
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            cd /home/ec2-user
+            sudo yum update -y
+            sudo yum install python3-pip -y
+            pip install langchain chromadb boto3 faker nano pandas numpy
+            pip install sentence-transformers
+            mkdir kb_on_ec2
+            cd kb_on_ec2
+            curl -O https://raw.githubusercontent.com/aws-samples/email-intelligent-automation-bedrock/main/network_logs/fm_oncloud/network_log_generator.py
+            curl -O https://raw.githubusercontent.com/aws-samples/email-intelligent-automation-bedrock/main/network_logs/fm_oncloud/onprem_vector_db.py
+            curl -O https://raw.githubusercontent.com/aws-samples/email-intelligent-automation-bedrock/main/network_logs/fm_oncloud/retrieve_response.py
+
+  EC2Instance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0cc0042ec9d1b45a6 # amazon/Deep Learning OSS Nvidia Driver AMI GPU
+      InstanceType: g5.2xlarge
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      KeyName: !Ref KeyPair
+      Tags:
+        - Key: Name
+          Value: fm_on_ec2
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: '1000'
+            VolumeType: gp3
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref SecurityGroup
+          SubnetId: !Ref PublicSubnet1
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            cd /home/ec2-user
+            mkdir fm_onprem
+            cd fm_onprem
+            sudo yum update -y
+            sudo yum install python3-pip -y
+            sudo pip3 install --upgrade pip
+            pip install --upgrade pip
+            pip install virtualenv
+            virtualenv --python=/opt/conda/bin/python3.10 fm_onprem
+            # Create a script to set up the environment and install packages
+            cat << EOF > /home/ec2-user/setup_and_install.sh
+            #!/bin/bash
+            set -x  # Enable debugging
+
+            # Activate virtual environment
+            source /home/ec2-user/fm_onprem/bin/activate
+
+            # Verify Python version
+            python --version
+            which python
+
+            # Upgrade pip
+            python -m pip install --upgrade pip
+
+            # Install vllm
+            pip install -U opensearch-py==2.3.1
+            pip install -U boto3==1.33.2
+            pip install -U retrying==1.3.4
+            pip install -U vllm
+            pip install --upgrade jsonschema
+            pip install -U transformers
+            pip install --upgrade jinja2
+
+            # List installed packages
+            pip list
+
+            # Deactivate virtual environment
+            deactivate
+            EOF
+            # Make the script executable
+            chmod +x /home/ec2-user/setup_and_install.sh
+
+            # Run the script as ec2-user
+            su - ec2-user -c "/home/ec2-user/setup_and_install.sh" > /tmp/setup_log.txt 2>&1
+            curl -O https://raw.githubusercontent.com/aws-samples/email-intelligent-automation-bedrock/main/network_logs/fm_onprem/utility.py
+            curl -O https://raw.githubusercontent.com/aws-samples/email-intelligent-automation-bedrock/main/network_logs/fm_onprem/fm_onprem_kb_bedrock.py
+            curl -O https://raw.githubusercontent.com/aws-samples/email-intelligent-automation-bedrock/main/network_logs/fm_onprem/network_log_generator.py
+            curl -O https://raw.githubusercontent.com/aws-samples/email-intelligent-automation-bedrock/main/network_logs/fm_onprem/fm_omprem_data_Ingestion.py
+            curl -O https://raw.githubusercontent.com/aws-samples/email-intelligent-automation-bedrock/main/network_logs/fm_onprem/fm_onprem_inference.py
+            python3 /home/ec2-user/fm_onprem/fm_onprem_kb_bedrock.py
+
+
+Outputs:
+  VPC:
+    Description: A reference to the created VPC
+    Value: !Ref VPC
+    Export:
+      Name: !Sub "${AWS::StackName}-VPCID"
+
+  PublicSubnet1:
+    Description: A reference to the first public Subnet
+    Value: !Ref PublicSubnet1
+    Export:
+      Name: !Sub "${AWS::StackName}-Subnet1ID"
+
+  PublicSubnet2:
+    Description: A reference to the second public Subnet
+    Value: !Ref PublicSubnet2
+    Export:
+      Name: !Sub "${AWS::StackName}-Subnet2ID"
+
+  EC2Instance1:
+    Description: A reference to the EC2 instance1
+    Value: !Ref EC2Instance1
+    Export:
+      Name: !Sub "${AWS::StackName}-EC2InstanceID1"
+  EC2Instance2:
+    Description: A reference to the EC2 instance2
+    Value: !Ref EC2Instance2
+    Export:
+      Name: !Sub "${AWS::StackName}-EC2InstanceID2"
