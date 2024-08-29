@@ -8,7 +8,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Aggument parser for uploading data into S3 bucket')
 parser.add_argument('--bucket', type=str, required=True, help='S3 bucket name')
 args = parser.parse_args()
-bucekt_name = args.bucket
+bucket_name = args.bucket
 
 s3_client = boto3.client('s3', region_name='us-west-2')
 # Initialize Faker
