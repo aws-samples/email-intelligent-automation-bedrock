@@ -3,12 +3,17 @@ from transformers import AutoTokenizer
 import logging, sys
 import warnings
 import boto3
+import argparse
 
 bedrock_agent_runtime_client = boto3.client("bedrock-agent-runtime", region_name='us-west-2')
 
-query = "what is the unusal traffic happenned yersterday"
+parser = argparse.ArgumentParser(description='Aggument parser to call Bedrock Models')
+parser.add_argument('--kbid', type=str, required=True, help='Knowledgebase ID')
+parser.add_argument('--prompt', type=str, required=True, help='user prompt')
+args = parser.parse_args()
 
-kb_id = 'ISIKGBQCIB'
+query = args.prompt
+kb_id = args.kbid
 
 '''messages = [
     {"role": "system", "content": "You are a network admin and helps to trouble shoot issue based on the user imput"},
