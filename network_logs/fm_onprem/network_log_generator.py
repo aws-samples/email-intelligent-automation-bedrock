@@ -2,7 +2,15 @@ import random
 import csv
 from datetime import datetime, timedelta
 from faker import Faker
+import boto3
+import argparse
 
+parser = argparse.ArgumentParser(description='Aggument parser for uploading data into S3 bucket')
+parser.add_argument('--bucket', type=str, required=True, help='S3 bucket name')
+args = parser.parse_args()
+bucekt_name = args.bucket
+
+s3_client = boto3.client('s3', region_name='us-west-2')
 # Initialize Faker
 fake = Faker()
 
@@ -70,3 +78,5 @@ with open('network_logs.csv', 'w', newline='') as csvfile:
         })
 
 print(f"Generated {num_entries} synthetic network log entries.")
+
+s3_client.upload_file("/home/ec2-user/fm_onprem/network_logs.csv", bucket_name, "data/network_logs.csv")
