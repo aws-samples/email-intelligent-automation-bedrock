@@ -6,7 +6,7 @@ region_name = 'us-west-2'
 parser = argparse.ArgumentParser(description='Aggument parser for KB ID and DataSaource ID')
 
 parser.add_argument('--kbid', type=str, required=True, help='knowledgeBaseId')
-parser.add_argument('--dsid', type=str, default=model_id, help='dataSourceId')
+parser.add_argument('--dsid', type=str, required=True, help='dataSourceId')
 args = parser.parse_args()
 knowledgeBaseId = args.kbid
 dataSourceId = args.dsid
@@ -23,8 +23,8 @@ job = start_job_response["ingestionJob"]
 # Get job 
 while(job['status']!='COMPLETE' ):
     get_job_response = bedrock_agent_client.get_ingestion_job(
-      knowledgeBaseId = kb['knowledgeBaseId'],
-        dataSourceId = ds["dataSourceId"],
+      knowledgeBaseId = knowledgeBaseId,
+        dataSourceId = dataSourceId,
         ingestionJobId = job["ingestionJobId"]
   )
     job = get_job_response["ingestionJob"]
