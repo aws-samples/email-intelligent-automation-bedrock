@@ -30,7 +30,9 @@ except ClientError as e:
     print(f'Creating bucket {bucket_name}')
     if region_name == "us-west-2":
         s3bucket = s3_client.create_bucket(
-            Bucket=bucket_name)
+            Bucket=bucket_name,
+            CreateBucketConfiguration={ 'LocationConstraint': region_name }
+        )
     else:
         s3bucket = s3_client.create_bucket(
         Bucket=bucket_name,
