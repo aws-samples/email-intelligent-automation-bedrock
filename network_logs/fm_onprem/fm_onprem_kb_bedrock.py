@@ -134,7 +134,7 @@ except RequestError as e:
     print(f'Error while trying to create the index, with error {e.error}\nyou may unmark the delete above to delete, and recreate the index')
 
 
-s3_client.upload_file("/home/ec2-user/fm_onprem/network_logs.csv", bucket_name, "data/network_logs.csv")
+# s3_client.upload_file("/home/ec2-user/fm_onprem/network_logs.csv", bucket_name, "data/network_logs.csv")
 
 opensearchServerlessConfiguration = {
             "collectionArn": collection["createCollectionDetail"]['arn'],
