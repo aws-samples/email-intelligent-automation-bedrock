@@ -216,3 +216,8 @@ ds = create_ds_response["dataSource"]
 #bedrock_agent_client.get_data_source(knowledgeBaseId = kb['knowledgeBaseId'], dataSourceId = ds["dataSourceId"])
 
 print ("KB ID  :"+ kb['knowledgeBaseId']+ "  dataSourceId  :"+ ds["dataSourceId"])
+
+# writing kb_id and ds_id into a file
+with open('kb_and_ds_info.txt', 'w') as file:
+    # Write some text to the file
+    file.write("KB_ID  :  "+ kb['knowledgeBaseId']+ "\n" + "DataSourceId  :  "+ ds["dataSourceId"] + "\n")
