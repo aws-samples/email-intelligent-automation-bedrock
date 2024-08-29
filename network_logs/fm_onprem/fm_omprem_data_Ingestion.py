@@ -31,9 +31,6 @@ while(job['status']!='COMPLETE' ):
     
     interactive_sleep(30)
 
-kb_id = kb["knowledgeBaseId"]
-
 print("Data Ingestion Job completed....")
-print("KB ID  :"+ kb_id)
 
 
