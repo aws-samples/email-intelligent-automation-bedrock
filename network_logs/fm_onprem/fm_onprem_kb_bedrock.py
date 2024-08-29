@@ -220,4 +220,4 @@ print ("KB ID  :"+ kb['knowledgeBaseId']+ "  dataSourceId  :"+ ds["dataSourceId"
 # writing kb_id and ds_id into a file
 with open('kb_and_ds_info.txt', 'w') as file:
     # Write some text to the file
-    file.write("KB_ID  :  "+ kb['knowledgeBaseId']+ "\n" + "DataSourceId  :  "+ ds["dataSourceId"] + "\n")
+    file.write("KB_ID  :  "+ kb['knowledgeBaseId']+ "\n" + "DataSourceId  :  "+ ds["dataSourceId"] + "\n" + "S3 Bucket Name  :  " + bucket_name + "\n")
