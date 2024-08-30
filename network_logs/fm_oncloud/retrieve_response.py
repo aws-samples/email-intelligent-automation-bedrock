@@ -85,6 +85,6 @@ def main():
         
         output = get_completion(prompt)
         
-        print(output)
+        st.text_area("Response:", value=output,height = 400)
 if __name__ == "__main__":
     main()
