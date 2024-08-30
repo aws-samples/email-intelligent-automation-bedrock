@@ -35,7 +35,7 @@ def main():
     query = st.text_input("Enter your query:")
     
     if query:
-        user_message = query +". List those data if exist and consider the date if given for filter the results."
+        user_message = query +". List those network traffic data if exist and consider the date if given for filtering the results."
         persist_directory = './chromadb_network_logs'
         client = chromadb.PersistentClient(path=persist_directory)
         collection = client.get_collection("network_logs_collection")
