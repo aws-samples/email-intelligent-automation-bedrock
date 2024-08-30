@@ -45,7 +45,7 @@ def main():
                 rel_docs1 = rel_docs1+(i['content']['text'])+"/n"
 
         messages = [
-            {"role": "system", "content": "You are a network admin and helps to trouble shoot issue based on the user imput"},
+            {"role": "system", "content": "You are a network admin and helps to trouble shoot issue based on the user imput. List those network traffic data if exist and consider the date if given for filtering the results"},
             {"role": "user", "content": rel_docs1},
         ]
 
