@@ -3,13 +3,14 @@ from transformers import AutoTokenizer
 import logging, sys
 import warnings
 import boto3
-#import argparse
+import torch
+import argparse
 import streamlit as st
 
 bedrock_agent_runtime_client = boto3.client("bedrock-agent-runtime", region_name='us-west-2')
 
 # retrieve api for fetching only the relevant context.
-def main():
+def main(kbid):
     st.title("Network Admin Chatbot")
     st.subheader("Sample Questions")
     sample_questions = [
@@ -25,16 +26,15 @@ def main():
         st.markdown(f"- {question}")
 
     query = st.text_input("Enter your query:")
-    
     if query:
         relevant_documents = bedrock_agent_runtime_client.retrieve(
             retrievalQuery= {
                 'text': query
             },
-            knowledgeBaseId='8YJ7JS8IGW',
+            knowledgeBaseId=kbid,
             retrievalConfiguration= {
                 'vectorSearchConfiguration': {
-                    'numberOfResults': 3 # will fetch top 3 documents which matches closely with the query.
+                    'numberOfResults': 5 # will fetch top 3 documents which matches closely with the query.
                 }
             }
         )
@@ -51,24 +51,33 @@ def main():
 
         logging.disable(sys.maxsize)
         warnings.filterwarnings("ignore")
+        
         model_id = "neuralmagic/Meta-Llama-3.1-8B-Instruct-quantized.w4a16"
-
+        
         number_gpus = 1
+        
         max_model_len = 8192
-
+        
         sampling_params = SamplingParams(temperature=0.1, top_p=0.9, max_tokens=1024)
-
+        
         tokenizer = AutoTokenizer.from_pretrained(model_id)
-
+        
         prompts = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
-
-        llm = LLM(model=model_id, tensor_parallel_size=number_gpus, max_model_len=max_model_len)
-
+        
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        llm = LLM(model=model_id, tensor_parallel_size=number_gpus, max_model_len=max_model_len, device=device)
+        
         outputs = llm.generate(prompts, sampling_params)
 
         generated_text = outputs[0].outputs[0].text
 
         st.text_area("Response:", value=generated_text,height = 400)
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__":    
+    if len(sys.argv) > 1:
+        kbid = sys.argv[1]
+    else:
+        print("Error: Knowledge Base ID is required as an argument.")
+        print("Usage: python your_script.py <knowledgeBaseId>")
+        sys.exit(1)
+    main(kbid)
